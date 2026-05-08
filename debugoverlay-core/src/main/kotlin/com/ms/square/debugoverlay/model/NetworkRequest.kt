@@ -12,6 +12,7 @@ import java.util.UUID
 public data class NetworkRequest(
   // Base NetworkRequest fields
   val id: String = UUID.randomUUID().toString(),
+  val name: String? = null,
   val protocol: String?, // http/1.1, h2, quic..etc
   val method: String, // GET, POST, etc.
   val url: String, // https://test.com/api/v1/feed

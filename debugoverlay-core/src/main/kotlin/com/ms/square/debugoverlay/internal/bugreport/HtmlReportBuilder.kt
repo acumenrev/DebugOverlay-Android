@@ -588,7 +588,11 @@ internal object HtmlReportBuilder {
       append("${it.escapeHtml()}</span>\n")
     }
     append("          </div>\n")
-    append("          <div class=\"url\">${request.url.escapeHtml()}</div>\n")
+    if (request.name != null) {
+      append("          <div class=\"url\">${request.url.escapeHtml()} (<strong>${request.name.escapeHtml()}</strong>)</div>\n")
+    } else {
+      append("          <div class=\"url\">${request.url.escapeHtml()}</div>\n")
+    }
     append("          <div class=\"network-meta\">\n")
     append("            <span>${request.durationMs}ms</span>\n")
     request.requestSize?.let { append("            <span>&#8593; ${formatBytes(it)}</span>\n") }

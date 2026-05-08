@@ -194,6 +194,9 @@ private fun OverviewTab(request: NetworkRequest, urlParts: UrlParts, modifier: M
     item {
       DetailSection(title = "Request Info") {
         InfoCard {
+          if (request.name != null) {
+            InfoRow("Name", request.name)
+          }
           InfoRow("Method", request.method)
           InfoRow(
             "Status",

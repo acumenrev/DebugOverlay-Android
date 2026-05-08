@@ -1,5 +1,6 @@
 package com.ms.square.debugoverlay.extension.okhttp
 
+import android.util.Log
 import com.ms.square.debugoverlay.DebugOverlay
 import com.ms.square.debugoverlay.NetworkRequestSource
 import com.ms.square.debugoverlay.extension.okhttp.internal.isProbablyUtf8
@@ -111,6 +112,7 @@ public class DebugOverlayNetworkInterceptor(
 
     // Capture request data
     val requestData = captureRequestData(request)
+    Log.d("DebugOverlay", "Intercepting request: ${request.url}")
 
     // Execute request
     val startNs = System.nanoTime()
@@ -119,8 +121,14 @@ public class DebugOverlayNetworkInterceptor(
     } catch (e: Exception) {
       // Network failure
       val tookMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNs)
+      val name = if (request.method == "POST") {
+        extractGraphQLName(requestData.content)
+      } else {
+        null
+      }
       // Track failed request
       addRequest(
+        name = name,
         protocol = protocol,
         method = request.method,
         url = request.url,
@@ -139,8 +147,15 @@ public class DebugOverlayNetworkInterceptor(
     // Capture response data
     val responseData = captureResponseData(response)
 
+    val name = if (request.method == "POST") {
+      extractGraphQLName(requestData.content)
+    } else {
+      null
+    }
+
     // Track successful request
     addRequest(
+      name = name,
       protocol = protocol,
       method = request.method,
       url = request.url,
@@ -156,6 +171,20 @@ public class DebugOverlayNetworkInterceptor(
     )
 
     return response
+  }
+
+  private fun extractGraphQLName(body: String?): String? {
+    if (body == null) return null
+    // 1. Try to extract operationName from JSON body
+    // Handles both "operationName":"Name" and "operationName": "Name"
+    val operationNameRegex = """"operationName"\s*:\s*"([^"]*)"""".toRegex()
+    val operationName = operationNameRegex.find(body)?.groupValues?.get(1)?.takeIf { it.isNotBlank() && it != "null" }
+    if (operationName != null) return operationName
+
+    // 2. Fallback: try to find the operation name in the "query" field or the raw body
+    // Looks for the first word after query/mutation/subscription keywords
+    val queryNameRegex = """(?:query|mutation|subscription)\s+([a-zA-Z0-9_]+)""".toRegex()
+    return queryNameRegex.find(body)?.groupValues?.get(1)
   }
 
   private fun captureHeaders(headers: Headers): Map<String, String> = headers.names().associateWith { name ->
@@ -404,6 +433,7 @@ public class DebugOverlayNetworkInterceptor(
 
   @Suppress("LongParameterList")
   private fun addRequest(
+    name: String? = null,
     protocol: String?,
     method: String,
     url: HttpUrl,
@@ -415,6 +445,7 @@ public class DebugOverlayNetworkInterceptor(
   ) {
     val redactUrl = redactUrl(url)
     val newRequest = NetworkRequest(
+      name = name,
       protocol = protocol,
       method = method,
       url = redactUrl.toString(),

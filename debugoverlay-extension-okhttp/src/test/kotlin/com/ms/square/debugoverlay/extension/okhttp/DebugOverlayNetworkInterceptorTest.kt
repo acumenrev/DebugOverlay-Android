@@ -263,6 +263,60 @@ class DebugOverlayNetworkInterceptorTest {
   }
 
   @Test
+  fun `intercept extracts GraphQL operationName from POST request body`() = runTest {
+    mockWebServer.enqueue(MockResponse().setResponseCode(200).setBody("{}"))
+
+    val graphQlBody = """{"operationName":"GetUserProfile","variables":{},"query":"query GetUserProfile { user { id name } }"}"""
+    val request = Request.Builder()
+      .url(mockWebServer.url("/graphql"))
+      .post(graphQlBody.toRequestBody("application/json".toMediaType()))
+      .build()
+
+    client.newCall(request).execute().close()
+
+    val requests = interceptor.requests.first()
+    assertThat(requests).hasSize(1)
+
+    val capturedRequest = requests.first()
+    assertThat(capturedRequest.method).isEqualTo("POST")
+    assertThat(capturedRequest.name).isEqualTo("GetUserProfile")
+  }
+
+  @Test
+  fun `intercept handles null GraphQL operationName gracefully`() = runTest {
+    mockWebServer.enqueue(MockResponse().setResponseCode(200).setBody("{}"))
+
+    val graphQlBody = """{"operationName":null,"variables":{},"query":"query { user { id name } }"}"""
+    val request = Request.Builder()
+      .url(mockWebServer.url("/graphql"))
+      .post(graphQlBody.toRequestBody("application/json".toMediaType()))
+      .build()
+
+    client.newCall(request).execute().close()
+
+    val requests = interceptor.requests.first()
+    val capturedRequest = requests.first()
+    assertThat(capturedRequest.name).isNull()
+  }
+
+  @Test
+  fun `intercept handles missing GraphQL operationName gracefully`() = runTest {
+    mockWebServer.enqueue(MockResponse().setResponseCode(200).setBody("{}"))
+
+    val graphQlBody = """{"variables":{},"query":"query { user { id name } }"}"""
+    val request = Request.Builder()
+      .url(mockWebServer.url("/graphql"))
+      .post(graphQlBody.toRequestBody("application/json".toMediaType()))
+      .build()
+
+    client.newCall(request).execute().close()
+
+    val requests = interceptor.requests.first()
+    val capturedRequest = requests.first()
+    assertThat(capturedRequest.name).isNull()
+  }
+
+  @Test
   fun `intercept handles corrupt gzipped response gracefully`() = runTest {
     val corruptGzipData = ByteArray(10) { 0x1F.toByte() } // Invalid gzip
 
