@@ -186,7 +186,7 @@ private fun OverviewTab(request: NetworkRequest, urlParts: UrlParts, modifier: M
           scope.copyToClipboard(clipboard, request.url)
         }
       ) {
-        UrlDisplay(parts = urlParts)
+        UrlDisplay(parts = urlParts, name = request.name)
       }
     }
 
@@ -517,7 +517,7 @@ private fun InfoRow(
  * URL display with scheme, domain, path, and query parameters.
  */
 @Composable
-private fun UrlDisplay(parts: UrlParts, modifier: Modifier = Modifier) {
+private fun UrlDisplay(parts: UrlParts, name: String? = null, modifier: Modifier = Modifier) {
   Surface(
     modifier = modifier.fillMaxWidth(),
     shape = MaterialTheme.shapes.medium,
@@ -542,7 +542,7 @@ private fun UrlDisplay(parts: UrlParts, modifier: Modifier = Modifier) {
       )
 
       Text(
-        text = parts.path,
+        text = if (name != null) "${parts.path} ($name)" else parts.path,
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.tertiary,
         fontFamily = FontFamily.Monospace
