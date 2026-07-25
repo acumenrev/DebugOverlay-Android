@@ -28,7 +28,7 @@ DebugOverlay gives you a lightweight, always-available look into your app's runt
 
 ```kotlin
 // app/build.gradle.kts
-debugImplementation("com.ms-square:debugoverlay:2.4.0")
+debugImplementation("com.ms-square:debugoverlay:2.6.2")
 
 // That's it! Overlay appears automatically on app launch.
 // Tap to open debug panel. Long-press to drag.
@@ -44,6 +44,7 @@ Draggable overlay with real-time metrics and sparklines:
 - **Heap** – JVM heap usage percentage
 - **PSS** – Proportional Set Size in MB
 - **FPS** – Real-time frame rate
+- **Thermal** – *(optional, Android 11+)* Device thermal status — enable via `OverlayMode.FullMetrics(showThermal = true)`
 
 ### Debug Panel
 Tap the overlay to open a full-screen diagnostic panel:
@@ -56,6 +57,7 @@ Tap the overlay to open a full-screen diagnostic panel:
 - **UI** – View hierarchy via [Radiography](https://github.com/square/radiography)
 - **Device** – Hardware specs, OS info, battery, network status
 - **Bug Report** – One-tap HTML report with screenshot and diagnostics
+- **Clear Logs** – Toolbar button to wipe Logcat/Timber/network entries so the next bug report covers only the repro window
 
 <img src="art/readme_debug_panel.gif" alt="Debug Panel">
 
@@ -71,7 +73,7 @@ Add to `gradle/libs.versions.toml`:
 
 ```toml
 [versions]
-debugoverlay = "2.4.0"
+debugoverlay = "2.6.2"
 
 [libraries]
 debugoverlay = { module = "com.ms-square:debugoverlay", version.ref = "debugoverlay" }
@@ -97,7 +99,7 @@ dependencies {
 ```kotlin
 // app/build.gradle.kts
 dependencies {
-  debugImplementation("com.ms-square:debugoverlay:2.4.0")
+  debugImplementation("com.ms-square:debugoverlay:2.6.2")
 }
 ```
 
@@ -152,8 +154,8 @@ For a zero-config shake trigger, add the shake extension:
 
 ```kotlin
 dependencies {
-  debugImplementation("com.ms-square:debugoverlay:2.4.0")
-  debugImplementation("com.ms-square:debugoverlay-extension-trigger-shake:2.4.0")
+  debugImplementation("com.ms-square:debugoverlay:2.6.2")
+  debugImplementation("com.ms-square:debugoverlay-extension-trigger-shake:2.6.2")
 }
 ```
 
@@ -177,12 +179,36 @@ DebugOverlay.configure {
 }
 ```
 
+### Thermal status
+
+Opt in to a thermal-status row in the compact overlay:
+
+```kotlin
+DebugOverlay.configure {
+  overlayMode = OverlayMode.FullMetrics(showThermal = true)
+}
+```
+
+The row shows the current thermal-throttling level with a color-coded dot. Labels are abbreviated to fit the compact panel — `None` / `Light` / `Mod` / `Sev` / `Crit` / `Emer` / `Shut` — mapping to `PowerManager.THERMAL_STATUS_NONE` / `_LIGHT` / `_MODERATE` / `_SEVERE` / `_CRITICAL` / `_EMERGENCY` / `_SHUTDOWN` respectively. Requires Android 11 (API 30) or above with a working thermal HAL — the row stays hidden on older devices and on API 30+ devices whose HAL doesn't expose `getThermalHeadroom` data. If the HAL later starts reporting, the row appears on the next poll.
+
+### Logcat buffer size
+
+The built-in Logcat tab keeps the last 300 entries by default. Override via `maxLogcatEntries`:
+
+```kotlin
+DebugOverlay.configure {
+  maxLogcatEntries = 1000
+}
+```
+
+The value also bounds the `logcat -T N` / `-t N` calls, so it caps how many lines the OS replays when the panel opens and when a bug report snapshot is captured.
+
 ### Network request tracking
 
 ```kotlin
 dependencies {
-  debugImplementation("com.ms-square:debugoverlay:2.4.0")
-  debugImplementation("com.ms-square:debugoverlay-extension-okhttp:2.4.0")
+  debugImplementation("com.ms-square:debugoverlay:2.6.2")
+  debugImplementation("com.ms-square:debugoverlay-extension-okhttp:2.6.2")
 }
 ```
 
@@ -213,8 +239,8 @@ val client = OkHttpClient.Builder()
 
 ```kotlin
 dependencies {
-  debugImplementation("com.ms-square:debugoverlay:2.4.0")
-  debugImplementation("com.ms-square:debugoverlay-extension-timber:2.4.0")
+  debugImplementation("com.ms-square:debugoverlay:2.6.2")
+  debugImplementation("com.ms-square:debugoverlay-extension-timber:2.6.2")
 }
 ```
 
@@ -338,7 +364,7 @@ android {
 }
 
 dependencies {
-  "releaseWithOverlayImplementation"("com.ms-square:debugoverlay:2.4.0")
+  "releaseWithOverlayImplementation"("com.ms-square:debugoverlay:2.6.2")
 }
 ```
 

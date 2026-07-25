@@ -2,6 +2,7 @@ package com.ms.square.debugoverlay.internal.data
 
 import android.app.Activity
 import android.content.Context
+import com.ms.square.debugoverlay.Clearable
 import com.ms.square.debugoverlay.LogSource
 import com.ms.square.debugoverlay.NetworkRequestSource
 import com.ms.square.debugoverlay.NoOpNetworkRequestSource
@@ -37,10 +38,10 @@ import kotlin.time.Duration.Companion.milliseconds
 /** Default name shown when a custom log source doesn't provide a source name. */
 internal const val DEFAULT_CUSTOM_LOG_SOURCE_NAME = "Custom"
 
-internal class DebugOverlayDataRepository(context: Context, scope: CoroutineScope) {
+internal class DebugOverlayDataRepository(context: Context, scope: CoroutineScope, initialLogcatMaxEntries: Int) {
 
   private val currentNetworkRequestSource = MutableStateFlow<NetworkRequestSource>(NoOpNetworkRequestSource)
-  private val logcatDataSource = LogcatDataSource(scope)
+  private val logcatDataSource = LogcatDataSource(scope, initialMaxEntries = initialLogcatMaxEntries)
   private val customLogSource = MutableStateFlow<LogSource?>(null)
   private val netStatsDataSource = NetStatsDataSource(scope)
   private val deviceInfoDataSource = DeviceInfoDataSource(context, scope)
@@ -115,6 +116,10 @@ internal class DebugOverlayDataRepository(context: Context, scope: CoroutineScop
     customLogSource.value = source
   }
 
+  fun setLogcatMaxEntries(maxEntries: Int) {
+    logcatDataSource.maxEntries = maxEntries
+  }
+
   fun startOrResumeJankStatsTracking(activity: Activity) {
     jankStatsDataSource.startOrResumeTracking(activity)
   }
@@ -125,5 +130,17 @@ internal class DebugOverlayDataRepository(context: Context, scope: CoroutineScop
 
   fun stopJankStatsTracking(activity: Activity) {
     jankStatsDataSource.stopTracking(activity)
+  }
+
+  /**
+   * Clears accumulated entries from sources that opt into [Clearable]:
+   * built-in logcat capture plus the current network and custom log sources
+   * when they implement [Clearable]. Custom external sources that don't
+   * implement [Clearable] are silently skipped.
+   */
+  fun clearAllLogs() {
+    logcatDataSource.clear()
+    (currentNetworkRequestSource.value as? Clearable)?.clear()
+    (customLogSource.value as? Clearable)?.clear()
   }
 }

@@ -1,5 +1,34 @@
 # Change Log
 
+## Version 2.6.2 *(2026-07-21)*
+
+### New Features
+
+* **Formatted JSON bodies and full request/response view in HTML reports** – Request/response bodies in the HTML bug report are now pretty-printed when detected as JSON (via Content-Type header or content sniffing). Truncated bodies (>2KB) get a toggle to view more: "View Full" if the body fits within a 64KB cap, or "View More (first 64.0 KB of Y)" otherwise, capped per-body to bound report memory. Resolves [#258](https://github.com/Manabu-GT/DebugOverlay-Android/issues/258).
+
+### Bug Fixes
+
+* **Debug Panel filter bar now collapses on short-height windows** – The panel gains compact-height support, including height-aware scrolling for the top app bar. Log filtering switches to a responsive filter bar (expanded chips vs. compact dropdown) with improved selection indicators/semantics, and the Network tab renders a compact, pinned statistics header on short-height windows. Resolves [#257](https://github.com/Manabu-GT/DebugOverlay-Android/issues/257).
+
+## Version 2.6.1 *(2026-05-21)*
+
+### Bug Fixes
+
+* **Speculative fix for "Create Report" being unresponsive on Xiaomi / MIUI** – `BugReportActivity` is no longer launched with `FLAG_ACTIVITY_NEW_TASK` when invoked from an Activity context; the flag is preserved for the FAB's non-Activity overlay context where it is still required. The combination of `NEW_TASK` + a transparent destination is suspected of tripping MIUI's pop-up window gate, but the symptom reported in [#251](https://github.com/Manabu-GT/DebugOverlay-Android/issues/251) could not be reproduced on the maintainer's devices, so this is an exploratory change rather than a verified fix.
+
+## Version 2.6.0 *(2026-05-18)*
+
+### New Features
+
+* **Thermal status row** – Optional thermal-status indicator for the compact overlay, opt-in via `OverlayMode.FullMetrics(showThermal = true)`. Combines `PowerManager.getCurrentThermalStatus()` with `getThermalHeadroom()` per [Google's ADPF guidance](https://developer.android.com/games/optimize/adpf/thermal#device-limitations-of-the-thermal-api) so devices with an incomplete thermal HAL still surface a useful signal. Requires Android 11 (API 30) or above; row stays hidden on older devices. Resolves [#246](https://github.com/Manabu-GT/DebugOverlay-Android/issues/246).
+* **Configurable Logcat buffer size** – New `Config.maxLogcatEntries` controls how many entries the built-in Logcat tab retains (default 300). Also bounds `logcat -T N` / `-t N` so it caps OS replay on panel open and on bug-report snapshots. Reassignable at runtime via `DebugOverlay.configure { maxLogcatEntries = … }`.
+
+## Version 2.5.0 *(2026-05-12)*
+
+### New Features
+
+* **Clear logs from the debug panel** – New `ClearAll` toolbar button wipes accumulated Logcat / Timber / network entries mid-session so the next bug report covers only the relevant repro window. Built-in sources implement the new public `Clearable` interface; custom `LogSource` / `NetworkRequestSource` implementations can opt in by also implementing `Clearable`. Resolves [#236](https://github.com/Manabu-GT/DebugOverlay-Android/issues/236).
+
 ## Version 2.4.0 *(2026-05-07)*
 
 ### New Features

@@ -3,6 +3,7 @@
   <!-- Debug Panel -->
   <string name="debugoverlay_debug_panel">Debug Panel</string>
   <string name="debugoverlay_close">Close</string>
+  <string name="debugoverlay_clear_logs_content_description">Clear collected logs</string>
 
   <!-- Tab Titles -->
   <string name="debugoverlay_tab_log">Log</string>
@@ -28,6 +29,7 @@
   <string name="debugoverlay_log_entry_description">Log entry: %1$s, %2$s</string>
   <string name="debugoverlay_filter_chip_description">Filter by %1$s level logs</string>
   <string name="debugoverlay_filter_tag">Filter Tag</string>
+  <string name="debugoverlay_filter_logs_content_description">Filter logs by level, current: %1$s</string>
   <string name="debugoverlay_message_label">MESSAGE</string>
   <string name="debugoverlay_clipboard_label_log">Log Line</string>
 
@@ -150,6 +152,16 @@
   <!-- Device Info Tab - Format Strings -->
   <string name="debugoverlay_device_info_percentage_value">%d%% free</string>
   <string name="debugoverlay_device_info_hz_value">%.0f Hz/%.0f Hz</string>
+
+  <!-- Thermal (compact overlay row, opt-in via OverlayMode.FullMetrics(showThermal = true)) -->
+  <string name="debugoverlay_thermal_compact_label">Therm</string>
+  <string name="debugoverlay_thermal_status_none_abbr">None</string>
+  <string name="debugoverlay_thermal_status_light_abbr">Light</string>
+  <string name="debugoverlay_thermal_status_moderate_abbr">Mod</string>
+  <string name="debugoverlay_thermal_status_severe_abbr">Sev</string>
+  <string name="debugoverlay_thermal_status_critical_abbr">Crit</string>
+  <string name="debugoverlay_thermal_status_emergency_abbr">Emer</string>
+  <string name="debugoverlay_thermal_status_shutdown_abbr">Shut</string>
 
   <!-- Bug Report -->
   <string name="debugoverlay_bug_report">Generate Bug Report</string>
