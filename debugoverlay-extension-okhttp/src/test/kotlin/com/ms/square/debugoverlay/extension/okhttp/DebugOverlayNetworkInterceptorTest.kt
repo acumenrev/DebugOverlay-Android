@@ -266,7 +266,8 @@ class DebugOverlayNetworkInterceptorTest {
   fun `intercept extracts GraphQL operationName from POST request body`() = runTest {
     mockWebServer.enqueue(MockResponse().setResponseCode(200).setBody("{}"))
 
-    val graphQlBody = """{"operationName":"GetUserProfile","variables":{},"query":"query GetUserProfile { user { id name } }"}"""
+    val query = "query GetUserProfile { user { id name } }"
+    val graphQlBody = """{"operationName":"GetUserProfile","variables":{},"query":"$query"}"""
     val request = Request.Builder()
       .url(mockWebServer.url("/graphql"))
       .post(graphQlBody.toRequestBody("application/json".toMediaType()))

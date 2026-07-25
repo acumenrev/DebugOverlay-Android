@@ -591,7 +591,8 @@ internal object HtmlReportBuilder {
     }
     append("          </div>\n")
     if (request.name != null) {
-      append("          <div class=\"url\">${request.url.escapeHtml()} (<strong>${request.name.escapeHtml()}</strong>)</div>\n")
+      append("          <div class=\"url\">${request.url.escapeHtml()} ")
+      append("(<strong>${request.name.escapeHtml()}</strong>)</div>\n")
     } else {
       append("          <div class=\"url\">${request.url.escapeHtml()}</div>\n")
     }
