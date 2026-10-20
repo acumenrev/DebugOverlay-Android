@@ -17,6 +17,7 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.CopyAll
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Info
@@ -52,17 +53,20 @@ import androidx.compose.ui.unit.dp
 import com.ms.square.debugoverlay.core.R
 import com.ms.square.debugoverlay.internal.data.TextType
 import com.ms.square.debugoverlay.internal.data.UrlParts
+import com.ms.square.debugoverlay.internal.util.contentType
 import com.ms.square.debugoverlay.internal.util.copyToClipboard
 import com.ms.square.debugoverlay.internal.util.formatBytes
 import com.ms.square.debugoverlay.internal.util.formatTimestamp
 import com.ms.square.debugoverlay.internal.util.httpStatusColor
 import com.ms.square.debugoverlay.internal.util.httpStatusMessage
 import com.ms.square.debugoverlay.internal.util.requestStatusColor
+import com.ms.square.debugoverlay.internal.util.toClipboardText
 import com.ms.square.debugoverlay.model.NetworkRequest
 
 /**
  * Network request detail screen with TopAppBar and comprehensive information.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun NetworkRequestDetailScreen(request: NetworkRequest, onBack: () -> Unit, modifier: Modifier = Modifier) {
   val urlParts = remember(request.url) { UrlParts.from(request.url) }
@@ -70,10 +74,36 @@ internal fun NetworkRequestDetailScreen(request: NetworkRequest, onBack: () -> U
   Scaffold(
     modifier = modifier.fillMaxSize(),
     topBar = {
-      NetworkRequestDetailTopAppBar(
-        request = request,
-        urlParts = urlParts,
-        onBack = onBack
+      TopAppBar(
+        title = {
+          Column {
+            Row(
+              horizontalArrangement = Arrangement.spacedBy(8.dp),
+              verticalAlignment = Alignment.CenterVertically
+            ) {
+              MethodBadge(method = request.method)
+              StatusCodeBadge(statusCode = request.statusCode, hasError = request.error != null)
+            }
+            Text(
+              text = urlParts.domain,
+              style = MaterialTheme.typography.bodySmall,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+              maxLines = 1,
+              overflow = TextOverflow.Ellipsis,
+              fontFamily = FontFamily.Monospace,
+              modifier = Modifier.padding(top = 2.dp)
+            )
+          }
+        },
+        navigationIcon = {
+          BackButton(onClick = onBack)
+        },
+        actions = {
+          NetworkRequestDetailActions(request)
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+          containerColor = MaterialTheme.colorScheme.surfaceContainer
+        )
       )
     }
   ) { paddingValues ->
@@ -85,58 +115,37 @@ internal fun NetworkRequestDetailScreen(request: NetworkRequest, onBack: () -> U
   }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * TopAppBar actions: copy the cURL command, URL alone, or the full request/response transaction.
+ */
 @Composable
-private fun NetworkRequestDetailTopAppBar(request: NetworkRequest, urlParts: UrlParts, onBack: () -> Unit) {
+private fun NetworkRequestDetailActions(request: NetworkRequest) {
   val clipboard = LocalClipboard.current
   val scope = rememberCoroutineScope()
-
-  TopAppBar(
-    title = {
-      Column {
-        Row(
-          horizontalArrangement = Arrangement.spacedBy(8.dp),
-          verticalAlignment = Alignment.CenterVertically
-        ) {
-          MethodBadge(method = request.method)
-          StatusCodeBadge(statusCode = request.statusCode, hasError = request.error != null)
-        }
-        Text(
-          text = urlParts.domain,
-          style = MaterialTheme.typography.bodySmall,
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
-          maxLines = 1,
-          overflow = TextOverflow.Ellipsis,
-          fontFamily = FontFamily.Monospace,
-          modifier = Modifier.padding(top = 2.dp)
-        )
-      }
-    },
-    navigationIcon = {
-      BackButton(onClick = onBack)
-    },
-    actions = {
-      IconButton(onClick = {
-        scope.copyToClipboard(clipboard, request.toCurl(), "cURL Command")
-      }) {
-        Icon(
-          imageVector = Icons.Default.Terminal,
-          contentDescription = stringResource(R.string.debugoverlay_copy_curl)
-        )
-      }
-      IconButton(onClick = {
-        scope.copyToClipboard(clipboard, request.url)
-      }) {
-        Icon(
-          imageVector = Icons.Default.ContentCopy,
-          contentDescription = stringResource(R.string.debugoverlay_copy)
-        )
-      }
-    },
-    colors = TopAppBarDefaults.topAppBarColors(
-      containerColor = MaterialTheme.colorScheme.surfaceContainer
+  IconButton(onClick = {
+    scope.copyToClipboard(clipboard, request.toCurl(), "cURL Command")
+  }) {
+    Icon(
+      imageVector = Icons.Default.Terminal,
+      contentDescription = stringResource(R.string.debugoverlay_copy_curl)
     )
-  )
+  }
+  IconButton(onClick = {
+    scope.copyToClipboard(clipboard, request.url)
+  }) {
+    Icon(
+      imageVector = Icons.Default.ContentCopy,
+      contentDescription = stringResource(R.string.debugoverlay_copy_url)
+    )
+  }
+  IconButton(onClick = {
+    scope.copyToClipboard(clipboard, request.toClipboardText())
+  }) {
+    Icon(
+      imageVector = Icons.Default.CopyAll,
+      contentDescription = stringResource(R.string.debugoverlay_copy_all)
+    )
+  }
 }
 
 @Composable
@@ -262,7 +271,7 @@ private fun OverviewTab(request: NetworkRequest, urlParts: UrlParts, modifier: M
         DetailSection(title = "Response Summary") {
           InfoCard {
             var itemCount = 0
-            request.responseHeaders["content-type"]?.let {
+            request.responseHeaders.contentType()?.let {
               InfoRow("Content-Type", it)
               itemCount++
             }
@@ -392,7 +401,7 @@ private fun BodyTab(request: NetworkRequest, modifier: Modifier = Modifier) {
         if (request.requestBody != null) {
           BodyPreview(
             body = request.requestBody,
-            contentType = request.requestHeaders["content-type"]
+            contentType = request.requestHeaders.contentType()
           )
         } else {
           EmptyState(text = stringResource(R.string.debugoverlay_network_no_request_body))
@@ -413,7 +422,7 @@ private fun BodyTab(request: NetworkRequest, modifier: Modifier = Modifier) {
         if (request.responseBody != null) {
           BodyPreview(
             body = request.responseBody,
-            contentType = request.responseHeaders["content-type"]
+            contentType = request.responseHeaders.contentType()
           )
         } else {
           EmptyState(text = stringResource(R.string.debugoverlay_network_no_response_body))
