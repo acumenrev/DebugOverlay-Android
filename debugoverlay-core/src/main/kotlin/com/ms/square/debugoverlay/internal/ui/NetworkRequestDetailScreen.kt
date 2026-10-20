@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -56,58 +57,23 @@ import com.ms.square.debugoverlay.internal.util.formatBytes
 import com.ms.square.debugoverlay.internal.util.formatTimestamp
 import com.ms.square.debugoverlay.internal.util.httpStatusColor
 import com.ms.square.debugoverlay.internal.util.httpStatusMessage
+import com.ms.square.debugoverlay.internal.util.requestStatusColor
 import com.ms.square.debugoverlay.model.NetworkRequest
 
 /**
  * Network request detail screen with TopAppBar and comprehensive information.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun NetworkRequestDetailScreen(request: NetworkRequest, onBack: () -> Unit, modifier: Modifier = Modifier) {
-  val clipboard = LocalClipboard.current
-  val scope = rememberCoroutineScope()
   val urlParts = remember(request.url) { UrlParts.from(request.url) }
 
   Scaffold(
     modifier = modifier.fillMaxSize(),
     topBar = {
-      TopAppBar(
-        title = {
-          Column {
-            Row(
-              horizontalArrangement = Arrangement.spacedBy(8.dp),
-              verticalAlignment = Alignment.CenterVertically
-            ) {
-              MethodBadge(method = request.method)
-              StatusCodeBadge(statusCode = request.statusCode)
-            }
-            Text(
-              text = urlParts.domain,
-              style = MaterialTheme.typography.bodySmall,
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
-              maxLines = 1,
-              overflow = TextOverflow.Ellipsis,
-              fontFamily = FontFamily.Monospace,
-              modifier = Modifier.padding(top = 2.dp)
-            )
-          }
-        },
-        navigationIcon = {
-          BackButton(onClick = onBack)
-        },
-        actions = {
-          IconButton(onClick = {
-            scope.copyToClipboard(clipboard, request.url)
-          }) {
-            Icon(
-              imageVector = Icons.Default.ContentCopy,
-              contentDescription = stringResource(R.string.debugoverlay_copy)
-            )
-          }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-          containerColor = MaterialTheme.colorScheme.surfaceContainer
-        )
+      NetworkRequestDetailTopAppBar(
+        request = request,
+        urlParts = urlParts,
+        onBack = onBack
       )
     }
   ) { paddingValues ->
@@ -117,6 +83,60 @@ internal fun NetworkRequestDetailScreen(request: NetworkRequest, onBack: () -> U
       modifier = Modifier.padding(paddingValues)
     )
   }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun NetworkRequestDetailTopAppBar(request: NetworkRequest, urlParts: UrlParts, onBack: () -> Unit) {
+  val clipboard = LocalClipboard.current
+  val scope = rememberCoroutineScope()
+
+  TopAppBar(
+    title = {
+      Column {
+        Row(
+          horizontalArrangement = Arrangement.spacedBy(8.dp),
+          verticalAlignment = Alignment.CenterVertically
+        ) {
+          MethodBadge(method = request.method)
+          StatusCodeBadge(statusCode = request.statusCode, hasError = request.error != null)
+        }
+        Text(
+          text = urlParts.domain,
+          style = MaterialTheme.typography.bodySmall,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          maxLines = 1,
+          overflow = TextOverflow.Ellipsis,
+          fontFamily = FontFamily.Monospace,
+          modifier = Modifier.padding(top = 2.dp)
+        )
+      }
+    },
+    navigationIcon = {
+      BackButton(onClick = onBack)
+    },
+    actions = {
+      IconButton(onClick = {
+        scope.copyToClipboard(clipboard, request.toCurl(), "cURL Command")
+      }) {
+        Icon(
+          imageVector = Icons.Default.Terminal,
+          contentDescription = stringResource(R.string.debugoverlay_copy_curl)
+        )
+      }
+      IconButton(onClick = {
+        scope.copyToClipboard(clipboard, request.url)
+      }) {
+        Icon(
+          imageVector = Icons.Default.ContentCopy,
+          contentDescription = stringResource(R.string.debugoverlay_copy)
+        )
+      }
+    },
+    colors = TopAppBarDefaults.topAppBarColors(
+      containerColor = MaterialTheme.colorScheme.surfaceContainer
+    )
+  )
 }
 
 @Composable
@@ -190,6 +210,31 @@ private fun OverviewTab(request: NetworkRequest, urlParts: UrlParts, modifier: M
       }
     }
 
+    // cURL Command Section
+    item {
+      val curlCommand = remember(request) { request.toCurl() }
+      DetailSection(
+        title = stringResource(R.string.debugoverlay_network_curl_command),
+        onCopy = {
+          scope.copyToClipboard(clipboard, curlCommand, "cURL Command")
+        }
+      ) {
+        Surface(
+          modifier = Modifier.fillMaxWidth(),
+          shape = MaterialTheme.shapes.small,
+          color = MaterialTheme.colorScheme.surfaceContainerHighest
+        ) {
+          Text(
+            text = curlCommand,
+            modifier = Modifier.padding(12.dp),
+            style = MaterialTheme.typography.bodySmall,
+            fontFamily = FontFamily.Monospace,
+            color = MaterialTheme.colorScheme.onSurface
+          )
+        }
+      }
+    }
+
     // Request Info
     item {
       DetailSection(title = "Request Info") {
@@ -201,7 +246,7 @@ private fun OverviewTab(request: NetworkRequest, urlParts: UrlParts, modifier: M
           InfoRow(
             "Status",
             request.statusCode?.let { "$it ${it.httpStatusMessage}" } ?: "Error",
-            valueColor = request.statusCode.httpStatusColor
+            valueColor = requestStatusColor(request.statusCode, request.error != null)
           )
           InfoRow("Duration", "${request.durationMs} ms")
           InfoRow("Response Size", formatBytes(request.responseSize))

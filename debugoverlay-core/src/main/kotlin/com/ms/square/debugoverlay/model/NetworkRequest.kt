@@ -27,7 +27,26 @@ public data class NetworkRequest(
   val requestBody: String? = null,
   val responseBody: String? = null,
   val error: NetworkError? = null,
-)
+) {
+  /**
+   * Generates a copy-pasteable cURL command representation of this request.
+   *
+   * @param multiline whether to format with backslashes on multiple lines.
+   */
+  public fun toCurl(multiline: Boolean = true): String {
+    val separator = if (multiline) " \\\n  " else " "
+    val builder = StringBuilder("curl -X $method")
+    for ((key, value) in requestHeaders) {
+      builder.append("$separator-H \"$key: $value\"")
+    }
+    if (!requestBody.isNullOrEmpty()) {
+      val escaped = requestBody.replace("'", "'\\''")
+      builder.append("$separator-d '$escaped'")
+    }
+    builder.append("$separator\"$url\"")
+    return builder.toString()
+  }
+}
 
 /**
  * Error information for failed requests.

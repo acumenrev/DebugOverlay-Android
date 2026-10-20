@@ -77,7 +77,9 @@ internal fun NetworkTabContent(
     } else {
       networkRequests.filter { request ->
         request.url.contains(searchQuery, ignoreCase = true) ||
-          request.method.contains(searchQuery, ignoreCase = true)
+          request.method.contains(searchQuery, ignoreCase = true) ||
+          (request.name != null && request.name.contains(searchQuery, ignoreCase = true)) ||
+          (searchQuery.equals("error", ignoreCase = true) && request.error != null)
       }
     }
     filtered.asReversed()
@@ -205,7 +207,7 @@ private fun NetworkRequestItem(request: NetworkRequest, onClick: () -> Unit, mod
       }
 
       // Right side: Status code
-      StatusCodeBadge(statusCode = request.statusCode)
+      StatusCodeBadge(statusCode = request.statusCode, hasError = request.error != null)
     }
   }
 }
@@ -282,7 +284,10 @@ private fun NetworkStats.augmentNetworkStatsWith(requests: List<NetworkRequest>)
   if (requests.isEmpty()) {
     return this
   }
-  val errorCount = requests.count { it.statusCode != null && it.statusCode >= HTTP_CLIENT_ERROR_START }
+  val errorCount = requests.count {
+    it.error != null ||
+      (it.statusCode != null && it.statusCode >= HTTP_CLIENT_ERROR_START)
+  }
   val avgDuration = requests.map { it.durationMs }.average().roundToInt().toLong()
 
   if (this == NetworkStats.UNSUPPORTED) {

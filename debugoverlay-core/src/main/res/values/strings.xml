@@ -62,6 +62,8 @@
   <string name="debugoverlay_network_no_response_headers">No response headers</string>
   <string name="debugoverlay_network_no_request_body">No request body</string>
   <string name="debugoverlay_network_no_response_body">No response body</string>
+  <string name="debugoverlay_copy_curl">Copy as cURL</string>
+  <string name="debugoverlay_network_curl_command">cURL Command</string>
 
   <!-- JankStats Tab -->
   <string name="debugoverlay_jankstats_clear">Clear</string>

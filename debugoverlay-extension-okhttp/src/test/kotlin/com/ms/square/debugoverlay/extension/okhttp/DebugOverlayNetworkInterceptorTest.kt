@@ -359,4 +359,56 @@ class DebugOverlayNetworkInterceptorTest {
     assertThat(afterClear).hasSize(1)
     assertThat(afterClear.first().url).contains("/second")
   }
+
+  @Test
+  fun `intercept captures GraphQL errors even on HTTP 200 response`() = runTest {
+    val graphQlErrorResponse =
+      """{"errors":[{"message":"Unauthorized access"}],"data":null}"""
+    mockWebServer.enqueue(
+      MockResponse()
+        .setResponseCode(200)
+        .setBody(graphQlErrorResponse)
+        .addHeader("Content-Type", "application/json")
+    )
+
+    val graphQlBody = """{"operationName":"GetUser","query":"query GetUser { user { id } }"}"""
+    val request = Request.Builder()
+      .url(mockWebServer.url("/graphql"))
+      .post(graphQlBody.toRequestBody("application/json".toMediaType()))
+      .build()
+
+    client.newCall(request).execute().close()
+
+    val requests = interceptor.requests.first()
+    assertThat(requests).hasSize(1)
+
+    val capturedRequest = requests.first()
+    assertThat(capturedRequest.statusCode).isEqualTo(200)
+    assertThat(capturedRequest.error).isNotNull()
+    assertThat(capturedRequest.error?.title).isEqualTo("GraphQL Error")
+    assertThat(capturedRequest.error?.message).isEqualTo("Unauthorized access")
+  }
+
+  @Test
+  fun `intercept captures network failure when call fails`() = runTest {
+    mockWebServer.shutdown()
+
+    val request = Request.Builder()
+      .url(mockWebServer.url("/api/unreachable"))
+      .get()
+      .build()
+
+    val result = runCatching {
+      client.newCall(request).execute()
+    }
+    assertThat(result.isFailure).isTrue()
+
+    val requests = interceptor.requests.first()
+    assertThat(requests).hasSize(1)
+
+    val capturedRequest = requests.first()
+    assertThat(capturedRequest.statusCode).isNull()
+    assertThat(capturedRequest.error).isNotNull()
+    assertThat(capturedRequest.error?.title).isEqualTo("Network Error")
+  }
 }

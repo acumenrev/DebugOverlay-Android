@@ -31,7 +31,7 @@ internal val String.httpMethodColor: Color
 // Status code colors
 private val STATUS_COLOR_SUCCESS = Color(0xFF4CAF50) // Green
 private val STATUS_COLOR_REDIRECT = Color(0xFF2196F3) // Blue
-private val STATUS_COLOR_CLIENT_ERROR = Color(0xFFF44336) // Red
+internal val STATUS_COLOR_CLIENT_ERROR: Color = Color(0xFFF44336) // Red
 private val STATUS_COLOR_SERVER_ERROR = Color(0xFFFF5722) // Deep orange
 private val STATUS_COLOR_UNKNOWN = Color(0xFF757575) // Gray
 
@@ -41,7 +41,15 @@ internal val Int?.httpStatusColor: Color
     in HTTP_REDIRECT_START..HTTP_REDIRECT_END -> STATUS_COLOR_REDIRECT
     in HTTP_CLIENT_ERROR_START..HTTP_CLIENT_ERROR_END -> STATUS_COLOR_CLIENT_ERROR
     in HTTP_SERVER_ERROR_START..HTTP_SERVER_ERROR_END -> STATUS_COLOR_SERVER_ERROR
+    null -> STATUS_COLOR_CLIENT_ERROR
     else -> STATUS_COLOR_UNKNOWN
+  }
+
+internal fun requestStatusColor(statusCode: Int?, hasError: Boolean): Color =
+  if (hasError && (statusCode == null || statusCode in HTTP_SUCCESS_START..HTTP_SUCCESS_END)) {
+    STATUS_COLOR_CLIENT_ERROR
+  } else {
+    statusCode.httpStatusColor
   }
 
 // Log level colors for light theme

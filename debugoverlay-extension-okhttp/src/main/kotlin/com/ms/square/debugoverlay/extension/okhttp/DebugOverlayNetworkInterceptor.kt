@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions")
+
 package com.ms.square.debugoverlay.extension.okhttp
 
 import android.util.Log
@@ -167,6 +169,8 @@ public class DebugOverlayNetworkInterceptor(
       responseData = responseData,
       error = if (response.code >= HTTP_CLIENT_ERROR_START) {
         createErrorFromResponse(response, responseData.content)
+      } else if (hasGraphQLErrors(responseData.content)) {
+        createGraphQLError(responseData.content)
       } else {
         null
       }
@@ -552,6 +556,22 @@ private fun createErrorFromResponse(response: Response, body: String?): NetworkE
       in HTTP_SERVER_ERROR_START..HTTP_SERVER_ERROR_END -> "Server error: The server failed to fulfill a valid request."
       else -> "Request failed with status $statusCode"
     },
+    stackTrace = body
+  )
+}
+
+private fun hasGraphQLErrors(body: String?): Boolean {
+  if (body.isNullOrBlank()) return false
+  return body.contains("\"errors\"") &&
+    (body.contains("\"message\"") || body.contains("\"locations\"") || body.contains("\"path\""))
+}
+
+private fun createGraphQLError(body: String?): NetworkError {
+  val messageRegex = """"message"\s*:\s*"([^"]*)"""".toRegex()
+  val firstMessage = body?.let { messageRegex.find(it)?.groupValues?.get(1) } ?: "GraphQL execution error"
+  return NetworkError(
+    title = "GraphQL Error",
+    message = firstMessage,
     stackTrace = body
   )
 }
